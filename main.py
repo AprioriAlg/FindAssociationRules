@@ -1,5 +1,9 @@
 import csv
+import operator
+import itertools
 import sys
+
+OUTPUT_FILE = "output.txt"
 
 def read_data(csv_file):
 	"""Read a csv file and return a list of itemset."""
@@ -7,7 +11,10 @@ def read_data(csv_file):
 	with open(csv_file, 'rU') as f:
 		reader = csv.reader(f)
 		for row in reader:
-			res.append(list(set(row)))  # Remove duplicates in one itemset.
+			row = list(set(row))
+			if '' in row:
+				row.remove('')
+			res.append(row)  # Remove duplicates in one itemset.
 	res.pop(0)  # Remove the csv header row.
 	return res
 
@@ -79,19 +86,19 @@ def add_itemset_freq(itemset_freq, itemset):
 	else:
 		itemset_freq[itemset] = 1
 
-def apriori_algorithm(dataset, min_supp):
+def apriori_algorithm(dataset, min_supp, itemset_freq, fo):
 	"""Use Apriori Algorithm to find all larget itemsets that have support >= min_supp. 
 
 	Args:
 		dataset: the list of itemset where each itemset is a list of items (words).
 		min_supp: the minimum support given by user.
+		itemset_freq: record the occurences (>=1) of each itemset.
 
 	Returns: 
 		large_itemsets (list).
 
 	"""
-	large_itemsets = []  # Contains all large itemsets, each itemset is of type ().
-	itemset_freq = {}  # The occurences of each itemset, e.g. {("jacket"): 35}.
+	large_itemsets_supp = {}
 	transaction_num = len(dataset)
 
 	# First pass: count item occurences to determine the large 1-itemsets.
@@ -102,10 +109,11 @@ def apriori_algorithm(dataset, min_supp):
 			add_itemset_freq(itemset_freq, itemset)
 	l1 = []  # store the large 1-itemsets.
 	for itemset, freq in itemset_freq.iteritems():
-		if float(freq) / transaction_num >= min_supp:
+		supp = float(freq) / transaction_num
+		if supp >= min_supp:
 			l1.append(itemset)
+			large_itemsets_supp[itemset] = supp
 	l1.sort()
-	large_itemsets += l1
 
 	# For kth pass, l store the  
 	prev_l = l1
@@ -117,16 +125,32 @@ def apriori_algorithm(dataset, min_supp):
 					add_itemset_freq(itemset_freq, itemset)
 		curr_l = []
 		for itemset in candidates:
-			if itemset in itemset_freq and float(itemset_freq[itemset]) / transaction_num >= min_supp:
-				curr_l.append(itemset)
-		large_itemsets += curr_l
+			if itemset in itemset_freq:
+				supp = float(itemset_freq[itemset]) / transaction_num
+				if supp >= min_supp:
+					curr_l.append(itemset)
+					large_itemsets_supp[itemset] = supp
 		prev_l = curr_l
 
-	print itemset_freq
-	return large_itemsets
+	fo.write("==Frequent itemsets (min_sup=%s%%)\n" % (min_supp * 100))
+	sorted_large_itemsets_supp = sorted(large_itemsets_supp.items(), key=operator.itemgetter(1), reverse=True)
+	for pair in sorted_large_itemsets_supp:
+		itemset = list(pair[0])
+		supp = pair[1]
+		fo.write("%s, %s%%\n" % (itemset, (supp * 100))) 
 
-def build_association_rules(large_itemsets):
-	pass
+	return large_itemsets_supp
+
+def build_association_rules(large_itemsets_supp, itemset_freq, min_conf, fo):
+	fo.write("\n==High-confidence association rules (min_conf=%s%%)\n" % (min_conf * 100))
+	for itemset in large_itemsets_supp.keys():
+		for r in range(1, len(itemset)):
+			for subset in itertools.combinations(itemset, r):
+				supp = large_itemsets_supp[itemset]
+				conf = float(itemset_freq[itemset]) / itemset_freq[subset]
+				if conf >= min_conf:
+					left = tuple(set(itemset) - set(subset))
+					fo.write("%s => %s (Conf:%s%%, Supp: %s%%)\n" % (list(subset), list(left), conf * 100, supp * 100))
 
 if __name__ == "__main__":
 	# Get command line arguments.
@@ -137,8 +161,11 @@ if __name__ == "__main__":
 	# Read transactions data from file.
 	dataset = read_data(csv_file)
 
+	itemset_freq = {}  # Record the occurences of each itemset, e.g. {("jacket"): 35}.
+	fo = open(OUTPUT_FILE, 'w')
+
 	# Find large itemsets by Apriori algorithm.
-	large_itemsets = apriori_algorithm(dataset, min_supp)
+	large_itemsets_support = apriori_algorithm(dataset, min_supp, itemset_freq, fo)
 
 	# Build association rules from large itemsets.
-	build_association_rules(large_itemsets)
+	build_association_rules(large_itemsets_support, itemset_freq, min_conf, fo)
