@@ -103,7 +103,6 @@ def apriori_algorithm(dataset, min_supp, itemset_freq, fo):
 
 	# First pass: count item occurences to determine the large 1-itemsets.
 	for transaction in dataset:
-		print transaction
 		for item in transaction:
 			itemset = (item,)
 			add_itemset_freq(itemset_freq, itemset)
@@ -143,14 +142,24 @@ def apriori_algorithm(dataset, min_supp, itemset_freq, fo):
 
 def build_association_rules(large_itemsets_supp, itemset_freq, min_conf, fo):
 	fo.write("\n==High-confidence association rules (min_conf=%s%%)\n" % (min_conf * 100))
+	association_rules_conf = {}
 	for itemset in large_itemsets_supp.keys():
 		for r in range(1, len(itemset)):
 			for subset in itertools.combinations(itemset, r):
 				supp = large_itemsets_supp[itemset]
 				conf = float(itemset_freq[itemset]) / itemset_freq[subset]
 				if conf >= min_conf:
-					left = tuple(set(itemset) - set(subset))
-					fo.write("%s => %s (Conf:%s%%, Supp: %s%%)\n" % (list(subset), list(left), conf * 100, supp * 100))
+					rest = tuple(set(itemset) - set(subset))
+					rule = (subset, rest, supp)
+					association_rules_conf[rule] = conf
+					#fo.write("%s => %s (Conf:%s%%, Supp: %s%%)\n" % (list(subset), list(left), conf * 100, supp * 100))
+	sorted_association_rules_conf = sorted(association_rules_conf.items(), key=operator.itemgetter(1), reverse=True)
+	for r in sorted_association_rules_conf:
+		left = r[0][0]
+		right = r[0][1]
+		supp = r[0][2]
+		conf = r[1]
+		fo.write("%s => %s (Conf:%s%%, Supp: %s%%)\n" % (list(left), list(right), conf * 100, supp * 100))
 
 if __name__ == "__main__":
 	# Get command line arguments.
