@@ -101,7 +101,7 @@ def add_dict_count(my_dict, key, value):
 		my_dict[key] = value
 
 def apriori_algorithm(dataset, min_supp, itemset_freq, t_count, transaction_num):
-	"""Use Apriori Algorithm to find all larget itemsets that have support >= min_supp. 
+	"""Use Apriori Algorithm to find all large itemsets that have support >= min_supp. 
 
 	Args:
 		dataset: the list of itemset where each itemset is a list of items (words).
@@ -193,8 +193,8 @@ if __name__ == "__main__":
 
 	# Read transaction data from file.
 	name_map = {}
-	t_count = {}  # record the occurances of each transaction.
-	dataset = read_data(csv_file, t_count, )
+	t_count = {}  # record the number of each transaction.
+	dataset = read_data(csv_file, t_count)
 	transaction_num = sum(t_count.values())
 
 	itemset_freq = {}  # Record the occurences of each itemset, e.g. {("jacket"): 35}.

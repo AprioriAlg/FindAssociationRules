@@ -1,0 +1,29 @@
+a. Team Member
+Diyue Xiao (dx2152)
+Mengting Wu (mw2987)
+
+b. Files Submitted
+main.py  					the main program
+INTEGRATED-DATASET.csv  	contains the transactions data
+README  					the readme file
+
+d. How to run your program
+
+python main.py INTEGRATED-DATASET.csv min_supp min_conf
+
+e. Internal Design
+
+Firstly, we read from command line arguments the dataset file name and the user-defined min_supp and min_conf.
+
+Then, we read transactions data from file "INTEGRATED-DATASET.csv". Each row in the file has four attributes: "Enthnicity", "Sex", "Cause of Death", "Count". The first three attibutes (items) form an itemset and we derive association relationships between them. We sort items in each itemset in lexicographic order. The last attribute "count" indicates the number of that transaction. We store the number of each transaction in dictionary t_count. The total number of transactions (transaction_num) is the sum of count of all transactions.
+
+To avoid different representations for same word, we normalize each item by eliminating blank spaces in it and converting it to lower case. For print, We have stored every item's original representation(randomly choose one) in dictionary name_map. 
+
+Next, we run the Aprioti algorithm on data to find all large itemsets that have support >= min_supp and store all itemsets along with its support in dictionary large_itemsets_supp. Firstly, we traverse the transactions set to count the occurences of each item. Each item forms a 1-itemset and we store its occurences in dictionary itemset_freq. When we count itemsets occurences, there is a variation of the original algorithm. Since we have a dictionary t_count which store the count for each transaction. The itemset_freq[item] = Sum (transaction_i * t_count(transaction_i)), where transaction_i contain the item. Then we compute the support for each 1-itemset by support = itemset_freq[item] / transaction_num. If support is not less than min_supp, we add it to the large 1-itemset L_1. In subsequent passes, we use L_1 to generate L_2 (large 2-itemsets), L_2 to generate L_3, etc. 
+
+We implement subsequent passes using a while loop. Each pass consists of two phases. In the first phase, we use function apriori-gen to generate candidate itemsets C_k from large itemsets L_{k-1}. The function apriori-gen consists of two steps: join & prune. The join step get k-itemsets by union of two (k-1)-itemsets which only differ last attribute. The prune step delete all itemsets that contain some subsets not in the large itemsets L_{k-1}. In the second phase, we compute the support for each candidate using the same method as described in the above pharagraph. Then we select all candidates which has support not less than min_supp and add them to the large itemsets L_k. When L_k contains no itemset, the loop terminate. After we find all large itemsets, we sort the dictionary large_itemsets_supp in decreasing order of their support and write them to file "output.txt".
+
+Finally, we use function build_association_rules to generate all association rules with confidence >= min_conf and store them along with its confidence in dictionary association_rules_conf. In this function, we find all subsets of each large itemset and derive rule {subset} => {large-itemset - subset}. Then we compute its confidence by formula support(large-itemset - subset) / support(subset). If confidence >= min_conf, we add this rule to dictionary association_rules_conf. At last, we sort the dictionary association_rules_conf in decreasing order of their confidence and write them to file "output.txt".
+
+
+
